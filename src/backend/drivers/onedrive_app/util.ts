@@ -1,5 +1,6 @@
 import { Addition, onedriveHostMap } from "./meta"
 import { File, Files, DriveResp } from "./types"
+import { ErrorCode, OpenListError } from "../../pkg/errs"
 
 export function getMetaUrl(
   d: Addition,
@@ -148,7 +149,12 @@ export async function requestApi<T>(
       await accessToken(d)
       return requestApi(d, url, method, data, true)
     }
-    throw new Error(errData?.message || `Request failed: ${res.status}`)
+    const message = errData?.message || `Request failed: ${res.status}`
+    // Preserve Graph's missing-resource status for WebDAV clients such as Zotero.
+    if (res.status === 404) {
+      throw new OpenListError(ErrorCode.NotFound, message)
+    }
+    throw new Error(message)
   }
   if (res.status === 204) return undefined as unknown as T
   return res.json() as Promise<T>

@@ -11,7 +11,7 @@ import {
   copyItems,
 } from "../internal/op/storage"
 import { buildWebDavPropfindResponse } from "../internal/webdav/webdav"
-import { safeErrorMessage } from "../pkg/errs"
+import { ErrorCode, OpenListError, safeErrorMessage } from "../pkg/errs"
 import { encodeDownloadPath } from "../pkg/path"
 
 /**
@@ -221,7 +221,12 @@ webdavRouter.all("/*", async (c) => {
     }
   } catch (e: any) {
     const msg = safeErrorMessage(e)
-    if (msg.includes("not found") || msg.includes("storage not found")) {
+    if (
+      (e instanceof OpenListError &&
+        (e.code === ErrorCode.NotFound || e.code === ErrorCode.PathNotFound)) ||
+      msg.includes("not found") ||
+      msg.includes("storage not found")
+    ) {
       return c.text("Not Found", 404)
     }
     return c.text(msg, 500)
